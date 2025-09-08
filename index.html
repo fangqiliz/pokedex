@@ -1,272 +1,136 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Pokédex con Comparar</title>
-  <style>
-    :root {
-      --color-fire: #ef5350;
-      --color-normal: #A8A77A;
-      --color-water: #6390F0;
-      --color-electric: #F7D02C;
-      --color-grass: #7AC74C;
-      --color-ice: #96D9D6;
-      --color-fighting: #C22E28;
-      --color-poison: #A33EA1;
-      --color-ground: #E2BF65;
-      --color-flying: #A98FF3;
-      --color-psychic: #F95587;
-      --color-bug: #A6B91A;
-      --color-rock: #B6A136;
-      --color-ghost: #735797;
-      --color-dragon: #6F35FC;
-      --color-dark: #705746;
-      --color-steel: #B7B7CE;
-      --color-fairy: #D685AD;
-    }
-
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background-color: #f5f5f5;
-      color: #333;
-    }
-
-    header nav {
-      display: flex;
-      justify-content: center;
-      gap: 2rem;
-      padding: 1rem;
-      background-color: var(--color-fire);
-      color: white;
-      position: sticky;
-      top: 0;
-      z-index: 1000;
-    }
-
-    .menu-btn {
-      background: none;
-      border: none;
-      color: inherit;
-      font-size: 1.2rem;
-      cursor: pointer;
-      font-weight: normal;
-      transition: text-decoration 0.3s;
-    }
-
-    .menu-btn:hover {
-      text-decoration: underline;
-    }
-
-    .menu-btn.active {
-      font-weight: bold;
-      text-decoration: underline;
-    }
-
-    main {
-      max-width: 1200px;
-      margin: 1rem auto;
-      padding: 0 1rem;
-    }
-
-    /* Ocultar secciones por defecto */
-    section {
-      display: none;
-    }
-
-    section.active {
-      display: block;
-    }
-
-    /* Aquí puedes agregar estilos para tu pokedex y comparación */
-
-    /* Ejemplo básico para el grid de Pokémon */
-    #pokemonGrid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-      gap: 1rem;
-    }
-
-    .pokemon-card {
-      background-color: white;
-      border-radius: 8px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      padding: 1rem;
-      text-align: center;
-      cursor: pointer;
-      transition: transform 0.2s;
-    }
-
-    .pokemon-card:hover {
-      transform: scale(1.05);
-    }
-
-    .pokemon-info {
-      margin-top: 0.5rem;
-    }
-
-    .pokemon-number {
-      font-weight: bold;
-      color: #666;
-    }
-
-    .pokemon-name {
-      text-transform: capitalize;
-      font-size: 1.1rem;
-    }
-
-    /* Modal básico */
-    .modal {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.5);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 2000;
-    }
-
-    .modal.hidden {
-      display: none;
-    }
-
-    .modal-content {
-      background: white;
-      border-radius: 10px;
-      padding: 1.5rem;
-      max-width: 600px;
-      width: 90%;
-      max-height: 90vh;
-      overflow-y: auto;
-      position: relative;
-    }
-
-    .close {
-      position: absolute;
-      top: 0.5rem;
-      right: 1rem;
-      font-size: 1.5rem;
-      font-weight: bold;
-      cursor: pointer;
-      color: #333;
-    }
-
-    /* Estilos para comparación */
-    #compareModalBody {
-      display: flex;
-      justify-content: space-around;
-      gap: 1rem;
-      flex-wrap: wrap;
-    }
-
-    .type {
-      display: inline-block;
-      padding: 0.2rem 0.6rem;
-      border-radius: 12px;
-      color: white;
-      text-transform: capitalize;
-      font-size: 0.9rem;
-      margin: 0 0.2rem;
-    }
-
-  </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pokédex Avanzada</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <header>
+        <nav>
+            <button id="menuPokedex" class="menu-btn active">
+                Pokédex
+            </button>
+            <button id="menuFavoritos" class="menu-btn">
+                Favoritos
+                <span id="favoritesCounter" class="favorites-counter">0</span>
+            </button>
+            <button id="menuComparar" class="menu-btn">Comparar</button>
+        </nav>
+    </header>
 
-<header>
-  <nav>
-    <button id="menuPokedex" class="menu-btn active">Pokedex</button>
-    <button id="menuComparar" class="menu-btn">Comparar</button>
-  </nav>
-</header>
+    <main>
+        <!-- Sección Pokédex -->
+        <section id="pokedexSection" class="active">
+            <div class="controls">
+                <div class="search-container">
+                    <input type="text" id="searchInput" placeholder="Buscar Pokémon por nombre o número">
+                    <span class="search-icon">🔍</span>
+                </div>
+                <select id="typeFilter">
+                    <option value="">Todos los tipos</option>
+                    <option value="normal">Normal</option>
+                    <option value="fire">Fuego</option>
+                    <option value="water">Agua</option>
+                    <option value="electric">Eléctrico</option>
+                    <option value="grass">Planta</option>
+                    <option value="ice">Hielo</option>
+                    <option value="fighting">Lucha</option>
+                    <option value="poison">Veneno</option>
+                    <option value="ground">Tierra</option>
+                    <option value="flying">Volador</option>
+                    <option value="psychic">Psíquico</option>
+                    <option value="bug">Bicho</option>
+                    <option value="rock">Roca</option>
+                    <option value="ghost">Fantasma</option>
+                    <option value="dragon">Dragón</option>
+                    <option value="dark">Siniestro</option>
+                    <option value="steel">Acero</option>
+                    <option value="fairy">Hada</option>
+                </select>
+                <select id="generationFilter">
+                    <option value="">Todas las generaciones</option>
+                    <option value="1">Generación 1 (kanto)</option>
+                    <option value="2">Generación 2 (Johto)</option>
+                    <option value="3">Generación 3 (Hoenn)</option>
+                    <option value="4">Generación 4 (Sinnoh)</option>
+                    <option value="5">Generación 5 (Unova)</option>
+                    <option value="6">Generación 6 (Kalos)</option>
+                    <option value="7">Generación 7 (Alola)</option>
+                    <option value="8">Generación 8 (Galar)</option>
+                    <option value="9">Generación 9 (Paldea)</option>
+                </select>
+            </div>
 
-<main>
-  <!-- Sección Pokedex -->
-  <section id="pokedexSection" class="active">
-    <!-- Aquí van tus filtros, búsqueda, grid y paginación -->
+            <!-- Historial de búsquedas -->
+            <div id="searchHistoryContainer" class="search-history" style="display: none;">
+                <h3>
+                    Búsquedas recientes
+                    <button id="clearHistoryBtn" class="clear-history-btn">Limpiar historial</button>
+                </h3>
+                <div id="historyItems" class="history-items"></div>
+            </div>
 
-    <div style="margin-bottom: 1rem; display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center;">
-      <input type="text" id="searchInput" placeholder="Buscar Pokémon por nombre o número" style="padding: 0.5rem; font-size: 1rem; width: 250px;"/>
-      <select id="typeFilter" style="padding: 0.5rem; font-size: 1rem;">
-        <option value="">Todos los tipos</option>
-        <option value="normal">Normal</option>
-        <option value="fire">Fuego</option>
-        <option value="water">Agua</option>
-        <option value="electric">Eléctrico</option>
-        <option value="grass">Planta</option>
-        <option value="ice">Hielo</option>
-        <option value="fighting">Lucha</option>
-        <option value="poison">Veneno</option>
-        <option value="ground">Tierra</option>
-        <option value="flying">Volador</option>
-        <option value="psychic">Psíquico</option>
-        <option value="bug">Bicho</option>
-        <option value="rock">Roca</option>
-        <option value="ghost">Fantasma</option>
-        <option value="dragon">Dragón</option>
-        <option value="dark">Siniestro</option>
-        <option value="steel">Acero</option>
-        <option value="fairy">Hada</option>
-      </select>
-      <select id="generationFilter" style="padding: 0.5rem; font-size: 1rem;">
-        <option value="">Todas las generaciones</option>
-        <option value="1">Generación 1</option>
-        <option value="2">Generación 2</option>
-        <option value="3">Generación 3</option>
-        <option value="4">Generación 4</option>
-        <option value="5">Generación 5</option>
-        <option value="6">Generación 6</option>
-        <option value="7">Generación 7</option>
-        <option value="8">Generación 8</option>
-        <option value="9">Generación 9</option>
-      </select>
-    </div>
+            <div id="loader" class="loader hidden">⏳ Cargando Pokémon...</div>
+            <div id="pokemonGrid"></div>
 
-    <div id="pokemonGrid"></div>
+            <div id="paginationControls">
+                <button id="prevPageBtn">Anterior</button>
+                <span id="currentPageDisplay">Página 1</span>
+                <button id="nextPageBtn">Siguiente</button>
+            </div>
+        </section>
 
-    <div id="paginationControls" style="text-align:center; margin: 1rem 0;">
-      <button id="prevPageBtn" style="padding: 0.5rem 1rem; margin-right: 1rem;">Anterior</button>
-      <span id="currentPageDisplay">Página 1</span>
-      <button id="nextPageBtn" style="padding: 0.5rem 1rem; margin-left: 1rem;">Siguiente</button>
-    </div>
+        <!-- Sección Favoritos -->
+        <section id="favoritosSection">
+            <div class="favorites-header">
+                <h2>Pokémon Favoritos</h2>
+                <button id="clearFavoritesBtn" class="clear-favorites-btn" style="display: none;">
+                    Limpiar favoritos
+                </button>
+            </div>
+            <div id="favoritesGrid"></div>
+            <div id="emptyFavorites" class="empty-state">
+                <div>⭐</div>
+                <h3>No tienes favoritos aún</h3>
+                <p>Marca algunos Pokémon como favoritos para verlos aquí</p>
+            </div>
+        </section>
 
-    <!-- Modal detalle Pokémon -->
-    <div id="pokemonModal" class="modal hidden">
-      <div class="modal-content">
-        <span id="closeModal" class="close">&times;</span>
-        <div id="modalBody"></div>
-      </div>
-    </div>
-  </section>
+        <!-- Sección Comparar -->
+        <section id="compararSection">
+            <h2 style="text-align:center; margin-bottom: 2rem;">Comparar Pokémon</h2>
+            <div style="display:flex; justify-content:center; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
+                <select id="pokemonCompare1" class="compare-select">
+                    <option value="">Seleccionar Pokémon 1</option>
+                </select>
+                <select id="pokemonCompare2" class="compare-select">
+                    <option value="">Seleccionar Pokémon 2</option>
+                </select>
+            </div>
+            <div style="text-align:center; margin-bottom: 2rem;">
+                <button id="compareBtn" class="compare-btn">Comparar</button>
+            </div>
+        </section>
 
-  <!-- Sección Comparar -->
-  <section id="compararSection">
-    <h2 style="text-align:center; margin-bottom: 1rem;">Comparar Pokémon</h2>
-    <div style="display:flex; justify-content:center; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
-      <select id="pokemonCompare1" class="compare-select" style="padding: 0.5rem; font-size: 1rem; min-width: 200px;">
-        <option value="">Seleccionar Pokémon 1</option>
-      </select>
-      <select id="pokemonCompare2" class="compare-select" style="padding: 0.5rem; font-size: 1rem; min-width: 200px;">
-        <option value="">Seleccionar Pokémon 2</option>
-      </select>
-    </div>
-    <div style="text-align:center; margin-bottom: 2rem;">
-      <button id="compareBtn" style="padding: 0.75rem 1.5rem; font-size: 1rem; border-radius: 25px; border: none; background-color: var(--color-fire); color: white; cursor: pointer;">Comparar</button>
-    </div>
+        <!-- Modal detalle Pokémon -->
+        <div id="pokemonModal" class="modal">
+            <div class="modal-content">
+                <span id="closeModal" class="close">&times;</span>
+                <div id="modalBody"></div>
+            </div>
+        </div>
 
-    <!-- Modal comparación -->
-    <div id="comparisonResult" class="modal hidden">
-      <div class="modal-content" style="max-width: 900px;">
-        <span id="closeCompareModal" class="close">&times;</span>
-        <div id="compareModalBody"></div>
-      </div>
-    </div>
-  </section>
-</main>
+        <!-- Modal comparación -->
+        <div id="comparisonResult" class="modal">
+            <div class="modal-content" style="max-width: 900px;">
+                <span id="closeCompareModal" class="close">&times;</span>
+                <div id="compareModalBody"></div>
+            </div>
+        </div>
+    </main>
 
-<!-- Aquí enlazas tu script.js -->
-<script src="script.js"></script>
-
+    <script src="script.js"></script>
 </body>
 </html>
