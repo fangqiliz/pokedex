@@ -1,0 +1,426 @@
+:root {
+  --color-normal: #A8A77A;
+  --color-fire: #EE8130;
+  --color-water: #6390F0;
+  --color-electric: #F7D02C;
+  --color-grass: #7AC74C;
+  --color-ice: #96D9D6;
+  --color-fighting: #C22E28;
+  --color-poison: #A33EA1;
+  --color-ground: #E2BF65;
+  --color-flying: #A98FF3;
+  --color-psychic: #F95587;
+  --color-bug: #A6B91A;
+  --color-rock: #B6A136;
+  --color-ghost: #735797;
+  --color-dragon: #6F35FC;
+  --color-dark: #705746;
+  --color-steel: #B7B7CE;
+  --color-fairy: #D685AD;
+
+  --bg-color: #f5f5f5;
+  --text-color: #333;
+  --modal-bg: rgba(0, 0, 0, 0.7);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+header {
+  padding: 1rem;
+  background-color: #ef5350;
+  color: white;
+  text-align: center;
+}
+
+header input {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  width: 90%;
+  max-width: 400px;
+  border-radius: 5px;
+  border: none;
+  font-size: 1rem;
+}
+
+main {
+  flex-grow: 1;
+  padding: 1rem;
+  max-width: 700px; /* Ajusta según prefieras */
+  margin: 0 auto;
+}
+
+/* Contenedor en cuadrícula con 5 columnas */
+#pokemonGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1rem;
+  padding: 1rem 0;
+}
+
+/* Tarjeta individual */
+.pokemon-card {
+  background-color: #eee;
+  border-radius: 10px;
+  padding: 1rem;
+  cursor: pointer;
+  color: white;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  user-select: none;
+  text-align: center;
+}
+
+.pokemon-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+}
+
+.pokemon-card img {
+  width: 96px;
+  height: 96px;
+  image-rendering: pixelated;
+  display: block;
+  margin: 0 auto;
+}
+
+.pokemon-number {
+  font-weight: bold;
+  font-size: 0.9rem;
+  margin-top: 0.3rem;
+}
+
+.pokemon-name {
+  font-size: 1.1rem;
+  text-transform: capitalize;
+  margin-top: 0.1rem;
+}
+
+#loadMoreBtn {
+  display: block;
+  margin: 2rem auto;
+  padding: 0.75rem 2rem;
+  font-size: 1rem;
+  border: none;
+  border-radius: 25px;
+  background-color: #ef5350;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+#loadMoreBtn:hover {
+  background-color: #d43c3a;
+}
+
+/* Modal */
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--modal-bg);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal.hidden {
+  display: none;
+}
+
+.modal-content {
+  background-color: white;
+  border-radius: 10px;
+  max-width: 500px;
+  width: 90%;
+  padding: 1.5rem;
+  position: relative;
+  overflow-y: auto;
+  max-height: 80vh;
+}
+
+.close {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  font-size: 2rem;
+  font-weight: bold;
+  cursor: pointer;
+  color: #333;
+}
+
+.modal-body img {
+  width: 150px;
+  display: block;
+  margin: 0 auto 1rem;
+}
+
+.types {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.type {
+  padding: 0.3rem 0.8rem;
+  border-radius: 15px;
+  color: white;
+  font-weight: bold;
+  text-transform: capitalize;
+  font-size: 0.9rem;
+}
+
+.stats {
+  margin-bottom: 1rem;
+}
+
+.stat {
+  margin-bottom: 0.5rem;
+}
+
+.stat-name {
+  font-weight: 600;
+  text-transform: capitalize;
+  margin-bottom: 0.2rem;
+}
+
+.stat-bar {
+  background-color: #ddd;
+  border-radius: 10px;
+  overflow: hidden;
+  height: 12px;
+}
+
+.stat-bar-fill {
+  height: 100%;
+  background-color: #ef5350;
+  transition: width 0.5s ease;
+}
+
+.abilities {
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.loader {
+  border: 6px solid #f3f3f3;
+  border-top: 6px solid #ef5350;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+  margin: 2rem auto;
+}
+
+.loader.hidden {
+  display: none;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Estilos para los selectores de comparación */
+.compare-select {
+    padding: 0.5rem;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    font-size: 1rem;
+    width: 45%; /* Ajusta según necesidad */
+    max-width: 250px;
+}
+
+/* Estilos para el resultado de la comparación (reutiliza modal) */
+#comparisonResult .modal-content {
+    max-width: 900px; /* Más ancho para la comparación lado a lado */
+}
+
+#compareModalBody > div {
+    flex: 1;
+    padding: 1rem;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    margin: 0 0.5rem;
+    text-align: left;
+}
+
+#compareModalBody h3 {
+    text-align: center;
+    text-transform: capitalize;
+}
+
+#compareModalBody .stat-bar {
+    background-color: #ddd;
+    border-radius: 10px;
+    overflow: hidden;
+    height: 12px;
+    margin-bottom: 0.5rem;
+}
+
+#compareModalBody .stat-bar-fill {
+    height: 100%;
+    background-color: #ef5350; /* Color base */
+    transition: width 0.5s ease;
+}
+
+/* Estilos para la nueva sección de comparación */
+#compareSection {
+  background-color: #f0f0f0; /* Un color de fondo diferente para destacarla */
+  padding: 2rem 1rem;
+  text-align: center;
+  margin-top: 2rem; /* Espacio superior para separarla de la sección principal */
+  border-top: 1px solid #ddd;
+}
+
+#compareSection .container {
+  max-width: 700px; /* Mismo ancho que el main para consistencia */
+  margin: 0 auto;
+}
+
+#compareSection h2 {
+  color: #333;
+  margin-bottom: 1.5rem;
+}
+
+.compare-controls {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap; /* Permite que los selectores se envuelvan en pantallas pequeñas */
+}
+
+/* Reutiliza y ajusta los estilos existentes para .compare-select */
+.compare-select {
+  padding: 0.75rem; /* Un poco más de padding */
+  border-radius: 8px; /* Bordes más suaves */
+  border: 1px solid #a0a0a0;
+  font-size: 1rem;
+  width: 48%; /* Ajusta para que quepan dos en una línea con gap */
+  max-width: 300px; /* Limita el ancho máximo */
+  background-color: white;
+  appearance: none; /* Elimina el estilo por defecto del sistema operativo */
+  background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23000000%22%20d%3D%22M287%2C197.3L159.3%2C69.7c-3.2-3.2-8.3-3.2-11.6%2C0L5.4%2C197.3c-3.2%2C3.2-3.2%2C8.3%2C0%2C11.6l11.6%2C11.6c3.2%2C3.2%2C8.3%2C3.2%2C11.6%2C0l124.4-124.4c3.2-3.2%2C8.3-3.2%2C11.6%2C0l124.4%2C124.4c3.2%2C3.2%2C8.3%2C3.2%2C11.6%2C0l11.6-11.6C290.3%2C205.6%2C290.3%2C200.5%2C287%2C197.3z%22%2F%3E%3C%2Fsvg%3E'); /* Flecha personalizada */
+  background-repeat: no-repeat;
+  background-position: right 0.7em top 50%, 0 0;
+  background-size: 0.65em auto, 100%;
+}
+
+#compareBtn {
+  padding: 0.75rem 2.5rem;
+  font-size: 1.1rem;
+  border: none;
+  border-radius: 25px;
+  background-color: #4CAF50; /* Un color diferente para el botón de comparar */
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  margin-top: 1rem;
+}
+
+#compareBtn:hover {
+  background-color: #45a049;
+}
+
+/* Ajustes para el modal de comparación */
+#comparisonResult .modal-content {
+  max-width: 950px; /* Un poco más ancho para la comparación */
+  width: 95%;
+  padding: 1.5rem;
+}
+
+#compareModalBody {
+  display: flex;
+  justify-content: space-around;
+  padding: 1rem;
+  flex-wrap: wrap; /* Permite que los detalles se envuelvan en pantallas pequeñas */
+  gap: 1.5rem; /* Espacio entre las columnas de Pokémon */
+}
+
+#compareModalBody > div {
+  flex: 1;
+  min-width: 280px; /* Ancho mínimo para cada columna de Pokémon */
+  padding: 1.5rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  background-color: #f9f9f9;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  text-align: center; /* Centra el contenido dentro de cada tarjeta de comparación */
+}
+
+#compareModalBody h3 {
+  margin-top: 0.5rem;
+  margin-bottom: 1rem;
+  font-size: 1.4rem;
+}
+
+#compareModalBody .types {
+  margin-bottom: 1.5rem;
+}
+
+#compareModalBody .stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.8rem;
+}
+
+#compareModalBody .stat-name {
+  flex-basis: 40%; /* Ajusta el ancho del nombre de la estadística */
+  text-align: left;
+  font-weight: normal; /* Quita el negrita para que no compita con el valor */
+}
+
+#compareModalBody .stat-bar {
+  flex-basis: 55%; /* Ajusta el ancho de la barra de estadística */
+  height: 10px; /* Barra más delgada */
+}
+
+#compareModalBody .abilities {
+  margin-top: 1.5rem;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+/* Media Queries para responsividad */
+@media (max-width: 768px) {
+  .compare-controls {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .compare-select {
+    width: 90%; /* Ocupa casi todo el ancho en pantallas pequeñas */
+    max-width: 350px;
+  }
+
+  #compareModalBody {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  #compareModalBody > div {
+    width: 90%;
+    margin: 0.5rem 0;
+  }
+}
+
+.menu-btn:hover {
+  text-decoration: underline;
+}
