@@ -24,7 +24,7 @@ app.use(helmet({
 
 // Configurar CORS para permitir conexión desde el frontend
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: process.env.FRONTEND_URL || 'http://127.0.0.1:5500',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
