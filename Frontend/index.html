@@ -17,19 +17,17 @@
         <span id="favoritesCounter" class="favorites-counter">0</span>
       </button>
       <button id="menuComparar" class="menu-btn">Comparar</button>
-
       <!-- Información del usuario -->
       <div class="user-info">
-        <span class="user-welcome"> 👋 <span id="userWelcome"></span></span>
+        <span class="user-welcome">   👋   <span id="userWelcome"></span></span>
         <button id="logoutBtn" class="logout-btn">Cerrar Sesión</button>
       </div>
     </nav>
   </header>
-
   <!-- Modal de login requerido (para toda la app si no hay sesión) -->
   <div id="loginRequiredModal" class="modal">
     <div class="modal-content" style="max-width: 400px; text-align: center;">
-      <div style="font-size: 3rem; margin-bottom: 1rem;"> 🔒 </div>
+      <div style="font-size: 3rem; margin-bottom: 1rem;">   🔒   </div>
       <h2>Sesión Requerida</h2>
       <p>Debes iniciar sesión para acceder a tu Pokédex personalizada.</p>
       <div style="margin-top: 2rem;">
@@ -38,14 +36,13 @@
       </div>
     </div>
   </div>
-
   <main>
     <!-- Sección Pokédex -->
     <section id="pokedexSection" class="active">
       <div class="controls">
         <div class="search-container">
           <input type="text" id="searchInput" placeholder="Buscar Pokémon por nombre o número">
-          <span class="search-icon"> 🔍 </span>
+          <span class="search-icon">   🔍   </span>
         </div>
         <select id="typeFilter">
           <option value="">Todos los tipos</option>
@@ -81,7 +78,6 @@
           <option value="9">Generación 9 (Paldea)</option>
         </select>
       </div>
-
       <!-- Historial de búsquedas -->
       <div id="searchHistoryContainer" class="search-history" style="display: none;">
         <h3>
@@ -90,8 +86,7 @@
         </h3>
         <div id="historyItems" class="history-items"></div>
       </div>
-
-      <div id="loader" class="loader hidden"> ⏳ Cargando Pokémon...</div>
+      <div id="loader" class="loader hidden">   ⏳   Cargando Pokémon...</div>
       <div id="pokemonGrid"></div>
       <div id="paginationControls">
         <button id="prevPageBtn">Anterior</button>
@@ -99,7 +94,6 @@
         <button id="nextPageBtn">Siguiente</button>
       </div>
     </section>
-
     <!-- Sección Favoritos -->
     <section id="favoritosSection">
       <div class="favorites-header">
@@ -110,19 +104,18 @@
       </div>
       <div id="favoritesGrid"></div>
       <div id="emptyFavorites" class="empty-state">
-        <div> ⭐ </div>
+        <div>   ⭐   </div>
         <h3>No tienes favoritos aún</h3>
         <p>Marca algunos Pokémon como favoritos para verlos aquí</p>
       </div>
       <!-- Mensaje de login requerido para favoritos -->
       <div id="loginRequiredFavorites" class="login-required-section" style="display: none;">
-        <div class="login-required-icon"> 🔒 </div>
+        <div class="login-required-icon">   🔒   </div>
         <h3>Inicia sesión para ver tus favoritos</h3>
         <p>Guarda tus Pokémon favoritos y accede a ellos desde cualquier dispositivo</p>
         <a href="login.html" class="login-required-btn">Iniciar Sesión</a>
       </div>
     </section>
-
     <!-- Sección Comparar -->
     <section id="compararSection">
       <h2 style="text-align:center; margin-bottom: 2rem;">Comparar Pokémon</h2>
@@ -138,7 +131,6 @@
         <button id="compareBtn" class="compare-btn">Comparar</button>
       </div>
     </section>
-
     <!-- Modal detalle Pokémon -->
     <div id="pokemonModal" class="modal">
       <div class="modal-content">
@@ -146,7 +138,6 @@
         <div id="modalBody"></div>
       </div>
     </div>
-
     <!-- Modal comparación -->
     <div id="comparisonResult" class="modal">
       <div class="modal-content" style="max-width: 900px;">
@@ -155,28 +146,46 @@
       </div>
     </div>
   </main>
-
   <script src="script.js"></script>
   <script>
     // Sistema de autenticación y protección
     class AuthSystem {
       constructor() {
         this.currentUser = null;
+        this.backendAuthUrl = 'http://localhost:5000/api/auth';
+        this.backendUserUrl = 'http://localhost:5000/api/user';
         this.init();
       }
 
-      init() {
-        const userData = localStorage.getItem('usuarioActual');
-        if (!userData) {
+      async init() {
+        const authToken = sessionStorage.getItem('authToken');
+        if (!authToken) {
           this.showLoginRequiredModal();
           return;
         }
+
         try {
-          this.currentUser = JSON.parse(userData);
+          const response = await fetch(`${this.backendAuthUrl}/me`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${authToken}`
+            }
+          });
+
+          if (!response.ok) {
+            // Token inválido o expirado
+            throw new Error('Token inválido o expirado');
+          }
+
+          const data = await response.json();
+          this.currentUser = data.user;
+          sessionStorage.setItem('currentUser', JSON.stringify(this.currentUser)); // Keep currentUser in sessionStorage
+
           this.setupAuthenticatedSession();
         } catch (error) {
-          console.error('Error al cargar usuario:', error);
-          this.logout();
+          console.error('Error al verificar token o cargar usuario:', error);
+          this.logout(); // Forzar logout si el token es inválido
         }
       }
 
@@ -189,51 +198,35 @@
         document.getElementById('userWelcome').textContent = this.currentUser.username;
         document.getElementById('logoutBtn').addEventListener('click', () => this.logout());
         this.loadUserData();
-        this.interceptUserFunctions();
       }
 
       loadUserData() {
-        if (this.currentUser.favoritos) {
-          window.favorites = new Set(this.currentUser.favoritos); // Usar window.favorites
-          window.updateFavoritesCounter();
-        }
-        if (this.currentUser.historial) {
-          window.searchHistory = this.currentUser.historial; // Usar window.searchHistory
-          window.updateSearchHistoryDisplay();
-        }
+        // window.favorites y window.searchHistory ahora se cargarán desde el backend
+        // y se actualizarán a través de las funciones modificadas en script.js
+        window.loadFavorites();
+        window.loadSearchHistory();
       }
 
-      interceptUserFunctions() {
-        // Interceptar saveFavorites para guardar en el usuario
-        const originalSaveFavorites = window.saveFavorites;
-        window.saveFavorites = () => {
-          this.currentUser.favoritos = [...window.favorites]; // Usar window.favorites
-          this.saveCurrentUser();
-          originalSaveFavorites(); // Llamar a la función original para compatibilidad
-        };
-
-        // Interceptar saveSearchHistory para guardar en el usuario
-        const originalSaveSearchHistory = window.saveSearchHistory;
-        window.saveSearchHistory = () => {
-          this.currentUser.historial = window.searchHistory; // Usar window.searchHistory
-          this.saveCurrentUser();
-          originalSaveSearchHistory(); // Llamar a la función original para compatibilidad
-        };
-      }
-
-      saveCurrentUser() {
-        localStorage.setItem('usuarioActual', JSON.stringify(this.currentUser));
-        const users = JSON.parse(localStorage.getItem('pokemonUsers') || '[]');
-        const userIndex = users.findIndex(u => u.id === this.currentUser.id);
-        if (userIndex !== -1) {
-          users[userIndex] = this.currentUser;
-          localStorage.setItem('pokemonUsers', JSON.stringify(users));
-        }
-      }
-
-      logout() {
+      async logout() {
         if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
-          localStorage.removeItem('usuarioActual');
+          const authToken = sessionStorage.getItem('authToken');
+          if (authToken) {
+            try {
+              // Opcional: llamar al endpoint de logout del backend
+              await fetch(`${this.backendAuthUrl}/logout`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${authToken}`
+                }
+              });
+            } catch (error) {
+              console.error('Error al llamar a logout del backend:', error);
+              // Continuar con el logout del frontend aunque falle la llamada al backend
+            }
+          }
+          sessionStorage.removeItem('authToken');
+          sessionStorage.removeItem('currentUser'); // Clear currentUser from sessionStorage
           window.location.href = 'login.html';
         }
       }

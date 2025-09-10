@@ -11,7 +11,7 @@ const {
   clearHistory,
   updateProfile,
   getUserStats
-} = require('../controllers/userController');
+} = require('../controllers/userControllers');
 const { authMiddleware } = require('../middleware/authMiddleware');
 
 const router = express.Router();

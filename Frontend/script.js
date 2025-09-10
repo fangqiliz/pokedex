@@ -42,9 +42,11 @@ const currentPageDisplay = document.getElementById('currentPageDisplay');
 
 // Configuración
 const POKEMON_PER_PAGE = 50;
-const MAX_SEARCH_HISTORY = 10;
+const MAX_SEARCH_HISTORY = 10; // Aunque el backend lo maneja, mantenemos la constante
+
 let allPokemon = [];
 let filteredPokemon = [];
+
 // Estas variables ahora son globales a través de `window` para que AuthSystem pueda interceptarlas
 window.favorites = new Set();
 window.searchHistory = [];
@@ -57,7 +59,10 @@ const limit = 1025; // Cargar todos los Pokémon hasta la generación 9
 const maxInitial = 1025;
 
 // Usuario actual (será establecido por el sistema de autenticación)
-let currentUser = null;
+let currentUser = null; // Se inicializará con los datos del backend
+
+// URL base del backend
+const BACKEND_URL = 'http://localhost:5000/api';
 
 // Colores por tipo
 const typeColors = {
@@ -94,96 +99,143 @@ function debounce(func, wait) {
   };
 }
 
-// ========== SISTEMA DE USUARIOS ==========
+// ========== SISTEMA DE USUARIOS (Adaptado para usar sessionStorage y backend) ==========
 function getCurrentUser() {
-  const userData = localStorage.getItem('usuarioActual');
+  const userData = sessionStorage.getItem('currentUser');
   if (userData) {
     try {
       return JSON.parse(userData);
     } catch (error) {
-      console.error('Error al parsear usuario actual:', error);
+      console.error('Error al parsear usuario actual desde sessionStorage:', error);
       return null;
     }
   }
   return null;
 }
 
-function updateCurrentUser(updatedUser) {
-  currentUser = updatedUser;
-  localStorage.setItem('usuarioActual', JSON.stringify(currentUser));
-  const users = JSON.parse(localStorage.getItem('pokemonUsers') || '[]');
-  const userIndex = users.findIndex(u => u.id === currentUser.id);
-  if (userIndex !== -1) {
-    users[userIndex] = currentUser;
-    localStorage.setItem('pokemonUsers', JSON.stringify(users));
+// No necesitamos updateCurrentUser aquí directamente, ya que AuthSystem lo maneja
+// y las funciones de favoritos/historial llamarán a la API para actualizar el backend.
+
+// ========== FETCH CON AUTENTICACIÓN ==========
+async function authenticatedFetch(url, options = {}) {
+  const authToken = sessionStorage.getItem('authToken');
+  if (!authToken) {
+    // Si no hay token, redirigir al login
+    alert('Sesión expirada o no iniciada. Por favor, inicia sesión.');
+    window.location.href = 'login.html';
+    throw new Error('No authentication token found.');
   }
+
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${authToken}`,
+    ...options.headers,
+  };
+
+  const response = await fetch(url, {
+    ...options,
+    headers,
+  });
+
+  if (response.status === 401) {
+    // Token inválido o expirado, forzar logout
+    alert('Tu sesión ha expirado. Por favor, inicia sesión de nuevo.');
+    sessionStorage.removeItem('authToken');
+    sessionStorage.removeItem('currentUser');
+    window.location.href = 'login.html';
+    throw new Error('Authentication failed: Token invalid or expired.');
+  }
+
+  return response;
 }
 
-// ========== LOCALSTORAGE ADAPTADO PARA USUARIOS ==========
-// Estas funciones son llamadas por el sistema de autenticación en index.html
-// y también directamente por script.js
-window.loadFavorites = function() {
-  if (currentUser && currentUser.favoritos) {
-    window.favorites = new Set(currentUser.favoritos);
-  } else {
-    const savedFavorites = localStorage.getItem('pokemonFavorites');
-    if (savedFavorites) {
-      window.favorites = new Set(JSON.parse(savedFavorites));
-    }
-  }
-  window.updateFavoritesCounter();
-};
-
-window.saveFavorites = function() {
-  if (currentUser) {
-    currentUser.favoritos = [...window.favorites];
-    updateCurrentUser(currentUser);
-  }
-  localStorage.setItem('pokemonFavorites', JSON.stringify([...window.favorites]));
-};
-
-window.loadSearchHistory = function() {
-  if (currentUser && currentUser.historial) {
-    window.searchHistory = currentUser.historial;
-  } else {
-    const savedHistory = localStorage.getItem('pokemonSearchHistory');
-    if (savedHistory) {
-      window.searchHistory = JSON.parse(savedHistory);
-    }
-  }
-  window.updateSearchHistoryDisplay();
-};
-
-window.saveSearchHistory = function() {
-  if (currentUser) {
-    currentUser.historial = window.searchHistory;
-    updateCurrentUser(currentUser);
-  }
-  localStorage.setItem('pokemonSearchHistory', JSON.stringify(window.searchHistory));
-};
-
-// ========== FAVORITOS ==========
-function toggleFavorite(pokemonId) {
+// ========== FAVORITOS (Modificado para usar la API) ==========
+window.loadFavorites = async function() {
+  currentUser = getCurrentUser(); // Asegurarse de tener el usuario más reciente
   if (!currentUser) {
-    alert(' ⚠ Debes iniciar sesión para guardar favoritos');
+    window.favorites = new Set();
+    window.updateFavoritesCounter();
     return;
   }
+
+  try {
+    const response = await authenticatedFetch(`${BACKEND_URL}/user/favoritos`);
+    const data = await response.json();
+
+    if (response.ok) {
+      window.favorites = new Set(data.favoritos);
+      window.updateFavoritesCounter();
+      // Actualizar currentUser en sessionStorage con los favoritos más recientes
+      currentUser.favoritos = data.favoritos;
+      sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+    } else {
+      console.error('Error al cargar favoritos:', data.error);
+      window.favorites = new Set(); // Limpiar favoritos si hay error
+      window.updateFavoritesCounter();
+    }
+  } catch (error) {
+    console.error('Error de red al cargar favoritos:', error);
+    window.favorites = new Set(); // Limpiar favoritos si hay error de red
+    window.updateFavoritesCounter();
+  }
+};
+
+async function toggleFavorite(pokemonId) {
+  currentUser = getCurrentUser();
+  if (!currentUser) {
+    alert('   ⚠   Debes iniciar sesión para guardar favoritos');
+    return;
+  }
+
   pokemonId = parseInt(pokemonId);
-  if (window.favorites.has(pokemonId)) {
-    window.favorites.delete(pokemonId);
-  } else {
-    window.favorites.add(pokemonId);
+  const isFavorited = window.favorites.has(pokemonId);
+  let success = false;
+
+  try {
+    let response;
+    if (isFavorited) {
+      response = await authenticatedFetch(`${BACKEND_URL}/user/favoritos/${pokemonId}`, {
+        method: 'DELETE',
+      });
+    } else {
+      response = await authenticatedFetch(`${BACKEND_URL}/user/favoritos`, {
+        method: 'POST',
+        body: JSON.stringify({ pokemonId }),
+      });
+    }
+
+    const data = await response.json();
+
+    if (response.ok) {
+      if (isFavorited) {
+        window.favorites.delete(pokemonId);
+      } else {
+        window.favorites.add(pokemonId);
+      }
+      success = true;
+      // Actualizar currentUser en sessionStorage con los favoritos más recientes
+      currentUser.favoritos = data.favoritos;
+      sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+    } else {
+      alert(`Error al ${isFavorited ? 'eliminar' : 'agregar'} favorito: ${data.error}`);
+      console.error(`Error al ${isFavorited ? 'eliminar' : 'agregar'} favorito:`, data.error);
+    }
+  } catch (error) {
+    console.error('Error de red al gestionar favorito:', error);
+    alert('Error de conexión al gestionar favoritos. Inténtalo de nuevo.');
   }
-  window.saveFavorites();
-  window.updateFavoritesCounter();
-  updateFavoriteButtons();
-  if (favoritosSection.classList.contains('active')) {
-    window.renderFavorites();
-  }
-  const card = document.querySelector(`[data-pokemon-id="${pokemonId}"]`);
-  if (card) {
-    card.classList.add('favorite-animation');
-    setTimeout(() => card.classList.remove('favorite-animation'), 300);
+
+  if (success) {
+    window.updateFavoritesCounter();
+    updateFavoriteButtons();
+    if (favoritosSection.classList.contains('active')) {
+      window.renderFavorites();
+    }
+    const card = document.querySelector(`[data-pokemon-id="${pokemonId}"]`);
+    if (card) {
+      card.classList.add('favorite-animation');
+      setTimeout(() => card.classList.remove('favorite-animation'), 300);
+    }
   }
 }
 
@@ -204,10 +256,10 @@ function updateFavoriteButtons() {
     const pokemonId = parseInt(btn.dataset.pokemonId);
     if (window.favorites.has(pokemonId)) {
       btn.classList.add('favorited');
-      btn.innerHTML = ' ⭐ ';
+      btn.innerHTML = '   ⭐   ';
     } else {
       btn.classList.remove('favorited');
-      btn.innerHTML = ' ☆ ';
+      btn.innerHTML = '   ☆   ';
     }
   });
   const modalFavoriteBtn = document.querySelector('.modal-favorite-btn');
@@ -215,15 +267,16 @@ function updateFavoriteButtons() {
     const pokemonId = parseInt(modalFavoriteBtn.dataset.pokemonId);
     if (window.favorites.has(pokemonId)) {
       modalFavoriteBtn.classList.add('favorited');
-      modalFavoriteBtn.innerHTML = ' ⭐ ';
+      modalFavoriteBtn.innerHTML = '   ⭐   ';
     } else {
       modalFavoriteBtn.classList.remove('favorited');
-      modalFavoriteBtn.innerHTML = ' ☆ ';
+      modalFavoriteBtn.innerHTML = '   ☆   ';
     }
   }
 }
 
 window.renderFavorites = function() {
+  currentUser = getCurrentUser();
   if (!currentUser) {
     document.getElementById('loginRequiredFavorites').style.display = 'block';
     favoritesGrid.style.display = 'none';
@@ -247,50 +300,80 @@ window.renderFavorites = function() {
   });
 };
 
-function clearAllFavorites() {
+async function clearAllFavorites() {
+  currentUser = getCurrentUser();
   if (!currentUser) {
-    alert(' ⚠ Debes iniciar sesión para administrar favoritos');
+    alert('   ⚠   Debes iniciar sesión para administrar favoritos');
     return;
   }
   if (confirm('¿Estás seguro de que quieres eliminar todos los favoritos?')) {
-    window.favorites.clear();
-    window.saveFavorites();
-    window.updateFavoritesCounter();
-    updateFavoriteButtons();
-    window.renderFavorites();
+    try {
+      const response = await authenticatedFetch(`${BACKEND_URL}/user/favoritos`, {
+        method: 'DELETE',
+      });
+      const data = await response.json();
+
+      if (response.ok) {
+        window.favorites.clear();
+        // Actualizar currentUser en sessionStorage
+        currentUser.favoritos = [];
+        sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+        window.updateFavoritesCounter();
+        updateFavoriteButtons();
+        window.renderFavorites();
+      } else {
+        alert(`Error al limpiar favoritos: ${data.error}`);
+        console.error('Error al limpiar favoritos:', data.error);
+      }
+    } catch (error) {
+      console.error('Error de red al limpiar favoritos:', error);
+      alert('Error de conexión al limpiar favoritos. Inténtalo de nuevo.');
+    }
   }
 }
 
-// ========== HISTORIAL DE BÚSQUEDAS ==========
-function addToSearchHistory(pokemon) {
+// ========== HISTORIAL DE BÚSQUEDAS (Modificado para usar la API) ==========
+async function addToSearchHistory(pokemon) {
+  currentUser = getCurrentUser();
   if (!currentUser) {
-    return;
+    return; // No guardar historial si no hay usuario logueado
   }
-  const existingIndex = window.searchHistory.findIndex(item => item.id === pokemon.id);
-  if (existingIndex > -1) {
-    window.searchHistory.splice(existingIndex, 1);
+
+  try {
+    const response = await authenticatedFetch(`${BACKEND_URL}/user/historial`, {
+      method: 'POST',
+      body: JSON.stringify({
+        id: pokemon.id,
+        name: pokemon.name,
+        sprite: pokemon.sprites.front_default,
+      }),
+    });
+    const data = await response.json();
+
+    if (response.ok) {
+      window.searchHistory = data.historial;
+      // Actualizar currentUser en sessionStorage
+      currentUser.historial = data.historial;
+      sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+      window.updateSearchHistoryDisplay();
+    } else {
+      console.error('Error al agregar al historial:', data.error);
+    }
+  } catch (error) {
+    console.error('Error de red al agregar al historial:', error);
   }
-  window.searchHistory.unshift({
-    id: pokemon.id,
-    name: pokemon.name,
-    sprite: pokemon.sprites.front_default,
-    timestamp: Date.now()
-  });
-  if (window.searchHistory.length > MAX_SEARCH_HISTORY) {
-    window.searchHistory = window.searchHistory.slice(0, MAX_SEARCH_HISTORY);
-  }
-  window.saveSearchHistory();
-  window.updateSearchHistoryDisplay();
 }
 
 window.updateSearchHistoryDisplay = function() {
-  if (!currentUser || window.searchHistory.length === 0) {
+  currentUser = getCurrentUser();
+  if (!currentUser || !currentUser.historial || currentUser.historial.length === 0) {
     searchHistoryContainer.style.display = 'none';
     return;
   }
   searchHistoryContainer.style.display = 'block';
   historyItems.innerHTML = '';
-  window.searchHistory.forEach(item => {
+  currentUser.historial.forEach(item => { // Usar currentUser.historial directamente
     const historyItem = document.createElement('button');
     historyItem.className = 'history-item';
     historyItem.innerHTML = `
@@ -307,15 +390,33 @@ window.updateSearchHistoryDisplay = function() {
   });
 };
 
-function clearSearchHistory() {
+async function clearSearchHistory() {
+  currentUser = getCurrentUser();
   if (!currentUser) {
-    alert(' ⚠ Debes iniciar sesión para administrar el historial');
+    alert('   ⚠   Debes iniciar sesión para administrar el historial');
     return;
   }
   if (confirm('¿Estás seguro de que quieres limpiar el historial de búsquedas?')) {
-    window.searchHistory = [];
-    window.saveSearchHistory();
-    window.updateSearchHistoryDisplay();
+    try {
+      const response = await authenticatedFetch(`${BACKEND_URL}/user/historial`, {
+        method: 'DELETE',
+      });
+      const data = await response.json();
+
+      if (response.ok) {
+        window.searchHistory = [];
+        // Actualizar currentUser en sessionStorage
+        currentUser.historial = [];
+        sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+        window.updateSearchHistoryDisplay();
+      } else {
+        alert(`Error al limpiar historial: ${data.error}`);
+        console.error('Error al limpiar historial:', data.error);
+      }
+    } catch (error) {
+      console.error('Error de red al limpiar historial:', error);
+      alert('Error de conexión al limpiar historial. Inténtalo de nuevo.');
+    }
   }
 }
 
@@ -343,7 +444,8 @@ async function loadPokemonBatch() {
   filteredPokemon = [...allPokemon];
   updatePagination();
   populateCompareSelects();
-  if (window.favorites.size > 0 && favoritosSection.classList.contains('active')) {
+  // Asegurarse de que los favoritos se rendericen si la sección está activa
+  if (favoritosSection.classList.contains('active')) {
     window.renderFavorites();
   }
   offset += limit;
@@ -359,9 +461,9 @@ function createPokemonCard(pokemon) {
   card.style.color = 'white';
   card.innerHTML = `
     <button class="favorite-btn" data-pokemon-id="${pokemon.id}">
-      ${window.favorites.has(pokemon.id) ? ' ⭐ ' : ' ☆ '}
+      ${window.favorites.has(pokemon.id) ? '   ⭐   ' : '   ☆   '}
     </button>
-    ${window.favorites.has(pokemon.id) ? '<div class="favorite-indicator"> ⭐ </div>' : ''}
+    ${window.favorites.has(pokemon.id) ? '<div class="favorite-indicator">   ⭐   </div>' : ''}
     <img src="${pokemon.sprites.front_default}" alt="${pokemon.name}" />
     <div class="pokemon-info">
       <div class="pokemon-number">#${pokemon.id.toString().padStart(3, '0')}</div>
@@ -396,6 +498,7 @@ function renderPokemonGrid(pokemonList) {
 }
 
 function showPokemonDetail(pokemon) {
+  currentUser = getCurrentUser(); // Obtener el usuario más reciente
   if (currentUser) {
     addToSearchHistory(pokemon);
   }
@@ -404,7 +507,7 @@ function showPokemonDetail(pokemon) {
       <h2>${pokemon.name} (#${pokemon.id.toString().padStart(3, '0')})</h2>
       <button class="modal-favorite-btn ${window.favorites.has(pokemon.id) ? 'favorited' : ''}"
         data-pokemon-id="${pokemon.id}">
-        ${window.favorites.has(pokemon.id) ? ' ⭐ ' : ' ☆ '}
+        ${window.favorites.has(pokemon.id) ? '   ⭐   ' : '   ☆   '}
       </button>
     </div>
     <div class="modal-body">
@@ -454,17 +557,16 @@ function applyFilters() {
   const type = typeFilter.value;
   const gen = parseInt(generationFilter.value);
   const query = searchInput.value.toLowerCase().trim();
-
   filteredPokemon = allPokemon.filter(p => {
     const matchesType = type === "" || p.types.some(t => t.type.name === type);
     const matchesGen = isNaN(gen) || getGeneration(p.id) === gen;
     const matchesSearch = !query || p.name.toLowerCase().includes(query) || p.id.toString() === query;
     return matchesType && matchesGen && matchesSearch;
   });
-
   currentPage = 1;
   updatePagination();
 }
+
 const debouncedApplyFilters = debounce(applyFilters, 300);
 
 // ========== PAGINACIÓN ==========
@@ -499,7 +601,6 @@ function updatePaginationControls() {
 window.showSection = function(section) { // Hacerla global para que AuthSystem la pueda interceptar
   document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.menu-btn').forEach(btn => btn.classList.remove('active'));
-
   switch(section) {
     case 'pokedex':
       pokedexSection.classList.add('active');
@@ -637,10 +738,10 @@ compareBtn.addEventListener('click', () => {
 
 // ========== INICIALIZACIÓN ==========
 function init() {
-  currentUser = getCurrentUser(); // Cargar usuario actual
-  window.loadFavorites(); // Cargar datos del usuario
-  window.loadSearchHistory(); // Cargar datos del usuario
-  loadPokemonBatch(); // Cargar Pokémon
+  currentUser = getCurrentUser(); // Cargar usuario actual desde sessionStorage
+  // Las funciones loadFavorites y loadSearchHistory ahora se llaman desde AuthSystem.init()
+  // después de que el usuario es autenticado y sus datos son cargados.
+  loadPokemonBatch(); // Cargar Pokémon (independiente de la autenticación)
   favoritesGrid.style.display = 'grid'; // Asegurar que el grid de favoritos tenga el estilo correcto
   favoritesGrid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(200px, 1fr))';
   favoritesGrid.style.gap = '1.5rem';

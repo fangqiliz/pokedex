@@ -56,7 +56,7 @@
       <p>Iniciar Sesión</p>
     </div>
     <div class="welcome-message" id="welcomeMessage">
-      🎉 ¡Bienvenido de nuevo, Entrenador!
+      🎉   ¡Bienvenido de nuevo, Entrenador!
     </div>
     <form id="loginForm">
       <div class="form-group">
@@ -69,7 +69,7 @@
       </div>
       <div class="error-message" id="errorMessage"></div>
       <div class="loading" id="loading">
-        ⏳ Verificando credenciales...
+        ⏳   Verificando credenciales...
       </div>
       <button type="submit" class="submit-btn" id="submitBtn">
         Iniciar Sesión
@@ -82,7 +82,7 @@
       <a href="#" onclick="showForgotPassword()">¿Olvidaste tu contraseña?</a>
     </div>
     <div class="demo-accounts">
-      <h4> 🎯 Cuentas de prueba (haz clic para usar):</h4>
+      <h4>   🎯   Cuentas de prueba (haz clic para usar):</h4>
       <div class="demo-account" onclick="fillDemoAccount('ash@pokedex.com', 'pokemon123')">
         <strong>Ash Ketchum:</strong> ash@pokedex.com / pokemon123
       </div>
@@ -91,7 +91,6 @@
       </div>
     </div>
   </div>
-
   <script>
     // ========== FUNCIONES GLOBALES (DEFINIDAS PRIMERO PARA ONCLICK) ==========
     function fillDemoAccount(email, password) {
@@ -103,70 +102,22 @@
         setTimeout(() => input.style.background = 'white', 1000);
       });
     }
-
     function showForgotPassword() {
-      alert(' 💡 Consejo: Usa una de las cuentas de prueba o crea una nueva cuenta.\n\nEn una aplicación real, aquí enviarías un email de recuperación.');
+      alert('   💡   Consejo: Usa una de las cuentas de prueba o crea una nueva cuenta.\n\nEn una aplicación real, aquí enviarías un email de recuperación.');
     }
-
     // ========== CLASE LOGIN MANAGER ==========
     class LoginManager {
       constructor() {
-        this.users = this.loadUsers();
+        this.backendUrl = 'http://localhost:5000/api/auth'; // URL base del backend
         this.initEventListeners();
-        this.createDemoAccounts();
         this.checkForWelcomeMessage();
-      }
-
-      loadUsers() {
-        const users = localStorage.getItem('pokemonUsers');
-        return users ? JSON.parse(users) : [];
-      }
-
-      saveUsers() {
-        localStorage.setItem('pokemonUsers', JSON.stringify(this.users));
-      }
-
-      createDemoAccounts() {
-        const demoAccounts = [
-          {
-            id: 'demo_ash',
-            username: 'Ash Ketchum',
-            email: 'ash@pokedex.com',
-            password: 'pokemon123',
-            favoritos: [25, 6, 150, 144, 145, 146], // Pikachu, Charizard, Mewtwo, Articuno, Zapdos, Moltres
-            historial: [
-              { id: 25, name: 'pikachu', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png', timestamp: Date.now() - 100000 },
-              { id: 6, name: 'charizard', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/6.png', timestamp: Date.now() - 200000 }
-            ],
-            fechaRegistro: new Date().toISOString()
-          },
-          {
-            id: 'demo_misty',
-            username: 'Misty',
-            email: 'misty@pokedex.com',
-            password: 'agua123',
-            favoritos: [7, 8, 9, 54, 55, 130], // Squirtle, Wartortle, Blastoise, Psyduck, Golduck, Gyarados
-            historial: [
-              { id: 130, name: 'gyarados', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/130.png', timestamp: Date.now() - 150000 }
-            ],
-            fechaRegistro: new Date().toISOString()
-          }
-        ];
-
-        demoAccounts.forEach(account => {
-          const exists = this.users.some(user => user.email === account.email);
-          if (!exists) {
-            this.users.push(account);
-          }
-        });
-        this.saveUsers();
       }
 
       checkForWelcomeMessage() {
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('registered') === 'true') {
           const welcomeMessage = document.getElementById('welcomeMessage');
-          welcomeMessage.textContent = ' 🎉 ¡Cuenta creada exitosamente! Ahora puedes iniciar sesión.';
+          welcomeMessage.textContent = '   🎉   ¡Cuenta creada exitosamente! Ahora puedes iniciar sesión.';
           welcomeMessage.classList.add('show');
           setTimeout(() => welcomeMessage.classList.remove('show'), 4000);
         }
@@ -204,28 +155,41 @@
         const password = document.getElementById('password').value;
 
         if (!email || !password) {
-          this.showError(' ⚠ Por favor, completa todos los campos');
+          this.showError('   ⚠   Por favor, completa todos los campos');
           return;
         }
 
         this.setLoading(true);
-        await this.delay(800); // Simular carga
 
         try {
-          const user = this.users.find(u => u.email === email && u.password === password);
-          if (!user) {
-            this.showError(' ❌ Email o contraseña incorrectos');
-            this.setLoading(false);
+          const response = await fetch(`${this.backendUrl}/login`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email, password }),
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            this.showError(`   ❌   ${data.error || 'Error al iniciar sesión.'}`);
             return;
           }
 
-          localStorage.setItem('usuarioActual', JSON.stringify(user));
-          this.showSuccess(' ✅ ¡Login exitoso! Redirigiendo...');
+          // Guardar el token en sessionStorage
+          sessionStorage.setItem('authToken', data.token);
+          // Guardar los datos del usuario en sessionStorage (opcional, pero útil para AuthSystem)
+          sessionStorage.setItem('currentUser', JSON.stringify(data.user));
+
+          this.showSuccess('   ✅   ¡Login exitoso! Redirigiendo...');
           await this.delay(1000);
           window.location.href = 'index.html';
+
         } catch (error) {
           console.error('Error en login:', error);
-          this.showError(' ❌ Error al iniciar sesión. Inténtalo de nuevo.');
+          this.showError('   ❌   Error de conexión. Inténtalo de nuevo más tarde.');
+        } finally {
           this.setLoading(false);
         }
       }
@@ -257,8 +221,8 @@
       }
     }
 
-    // Verificar si ya hay un usuario logueado
-    if (localStorage.getItem('usuarioActual')) {
+    // Verificar si ya hay un token en sessionStorage
+    if (sessionStorage.getItem('authToken')) {
       window.location.href = 'index.html';
     }
 

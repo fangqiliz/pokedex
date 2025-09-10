@@ -71,7 +71,7 @@
         <div class="error-message" id="confirmPasswordError"></div>
       </div>
       <div class="loading" id="loading">
-        ⏳ Creando cuenta...
+        ⏳   Creando cuenta...
       </div>
       <button type="submit" class="submit-btn" id="submitBtn">
         Crear Cuenta
@@ -81,21 +81,11 @@
       ¿Ya tienes una cuenta? <a href="login.html">Iniciar Sesión</a>
     </div>
   </div>
-
   <script>
     class AuthManager {
       constructor() {
-        this.users = this.loadUsers();
+        this.backendUrl = 'http://localhost:5000/api/auth'; // URL base del backend
         this.initEventListeners();
-      }
-
-      loadUsers() {
-        const users = localStorage.getItem('pokemonUsers');
-        return users ? JSON.parse(users) : [];
-      }
-
-      saveUsers() {
-        localStorage.setItem('pokemonUsers', JSON.stringify(this.users));
       }
 
       initEventListeners() {
@@ -108,61 +98,82 @@
         form.addEventListener('submit', (e) => this.handleSubmit(e));
         username.addEventListener('input', () => this.validateUsername());
         email.addEventListener('input', () => this.validateEmail());
-        password.addEventListener('input', () => this.validatePassword());
+        password.addEventListener('input', () => {
+          this.validatePassword();
+          this.validateConfirmPassword(); // Re-validate confirm password on password change
+        });
         confirmPassword.addEventListener('input', () => this.validateConfirmPassword());
       }
 
-      validateUsername() {
-        const username = document.getElementById('username');
-        const error = document.getElementById('usernameError');
-        const value = username.value.trim();
+      // Helper para obtener todos los usuarios (solo para validación de unicidad en el frontend,
+      // la validación real la hace el backend)
+      async fetchAllUsersForValidation() {
+        // En un entorno real, no se expondría una ruta para obtener todos los usuarios.
+        // Esta función es solo para simular la validación de unicidad en el frontend
+        // antes de enviar al backend, aunque el backend siempre hará la validación final.
+        // Para este ejercicio, asumimos que no hay una ruta pública para esto,
+        // por lo que la validación de unicidad se basará en la respuesta del backend.
+        return [];
+      }
+
+      async validateUsername() {
+        const usernameInput = document.getElementById('username');
+        const errorElement = document.getElementById('usernameError');
+        const value = usernameInput.value.trim();
 
         if (value.length < 3) {
-          this.showError(username, error, 'El nombre de usuario debe tener al menos 3 caracteres');
+          this.showError(usernameInput, errorElement, 'El nombre de usuario debe tener al menos 3 caracteres');
           return false;
         }
-        if (this.users.some(user => user.username.toLowerCase() === value.toLowerCase())) {
-          this.showError(username, error, 'Este nombre de usuario ya está en uso');
+        if (value.length > 50) {
+          this.showError(usernameInput, errorElement, 'El nombre de usuario no puede exceder 50 caracteres');
           return false;
         }
-        this.showSuccess(username, error);
+        if (!/^[a-zA-Z0-9_-]+$/.test(value)) {
+          this.showError(usernameInput, errorElement, 'El nombre de usuario solo puede contener letras, números, guiones y guiones bajos');
+          return false;
+        }
+        // Unicidad será validada por el backend
+        this.showSuccess(usernameInput, errorElement);
         return true;
       }
 
-      validateEmail() {
-        const email = document.getElementById('email');
-        const error = document.getElementById('emailError');
-        const value = email.value.trim();
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      async validateEmail() {
+        const emailInput = document.getElementById('email');
+        const errorElement = document.getElementById('emailError');
+        const value = emailInput.value.trim();
+        const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
 
         if (!emailRegex.test(value)) {
-          this.showError(email, error, 'Por favor, introduce un email válido');
+          this.showError(emailInput, errorElement, 'Por favor, introduce un email válido');
           return false;
         }
-        if (this.users.some(user => user.email.toLowerCase() === value.toLowerCase())) {
-          this.showError(email, error, 'Este email ya está registrado');
-          return false;
-        }
-        this.showSuccess(email, error);
+        // Unicidad será validada por el backend
+        this.showSuccess(emailInput, errorElement);
         return true;
       }
 
       validatePassword() {
-        const password = document.getElementById('password');
-        const error = document.getElementById('passwordError');
-        const strength = document.getElementById('passwordStrength');
-        const value = password.value;
+        const passwordInput = document.getElementById('password');
+        const errorElement = document.getElementById('passwordError');
+        const strengthElement = document.getElementById('passwordStrength');
+        const value = passwordInput.value;
 
         if (value.length < 6) {
-          this.showError(password, error, 'La contraseña debe tener al menos 6 caracteres');
-          strength.textContent = '';
+          this.showError(passwordInput, errorElement, 'La contraseña debe tener al menos 6 caracteres');
+          strengthElement.textContent = '';
+          return false;
+        }
+        if (!/^(?=.*[a-z])(?=.*\d)/.test(value)) {
+          this.showError(passwordInput, errorElement, 'La contraseña debe contener al menos una letra minúscula y un número');
+          strengthElement.textContent = '';
           return false;
         }
 
         let strengthLevel = this.evaluatePasswordStrength(value);
-        strength.className = `password-strength strength-${strengthLevel.level}`;
-        strength.textContent = strengthLevel.text;
-        this.showSuccess(password, error);
+        strengthElement.className = `password-strength strength-${strengthLevel.level}`;
+        strengthElement.textContent = strengthLevel.text;
+        this.showSuccess(passwordInput, errorElement);
         return true;
       }
 
@@ -174,21 +185,21 @@
         if (/[0-9]/.test(password)) score++;
         if (/[^A-Za-z0-9]/.test(password)) score++;
 
-        if (score < 2) return { level: 'weak', text: ' ⚠ Contraseña débil' };
-        if (score < 4) return { level: 'medium', text: ' ⚡ Contraseña moderada' };
-        return { level: 'strong', text: ' 🔒 Contraseña fuerte' };
+        if (score < 2) return { level: 'weak', text: '   ⚠   Contraseña débil' };
+        if (score < 4) return { level: 'medium', text: '   ⚡   Contraseña moderada' };
+        return { level: 'strong', text: '   🔒   Contraseña fuerte' };
       }
 
       validateConfirmPassword() {
-        const password = document.getElementById('password');
-        const confirmPassword = document.getElementById('confirmPassword');
-        const error = document.getElementById('confirmPasswordError');
+        const passwordInput = document.getElementById('password');
+        const confirmPasswordInput = document.getElementById('confirmPassword');
+        const errorElement = document.getElementById('confirmPasswordError');
 
-        if (confirmPassword.value !== password.value) {
-          this.showError(confirmPassword, error, 'Las contraseñas no coinciden');
+        if (confirmPasswordInput.value !== passwordInput.value) {
+          this.showError(confirmPasswordInput, errorElement, 'Las contraseñas no coinciden');
           return false;
         }
-        this.showSuccess(confirmPassword, error);
+        this.showSuccess(confirmPasswordInput, errorElement);
         return true;
       }
 
@@ -208,8 +219,8 @@
       async handleSubmit(e) {
         e.preventDefault();
 
-        const isUsernameValid = this.validateUsername();
-        const isEmailValid = this.validateEmail();
+        const isUsernameValid = await this.validateUsername();
+        const isEmailValid = await this.validateEmail();
         const isPasswordValid = this.validatePassword();
         const isConfirmPasswordValid = this.validateConfirmPassword();
 
@@ -218,32 +229,39 @@
         }
 
         this.setLoading(true);
-        await this.delay(1000); // Simular carga
 
         try {
           const username = document.getElementById('username').value.trim();
           const email = document.getElementById('email').value.trim();
           const password = document.getElementById('password').value;
 
-          const newUser = {
-            id: Date.now(), // ID único basado en el timestamp
-            username,
-            email: email.toLowerCase(),
-            password,
-            favoritos: [],
-            historial: [],
-            fechaRegistro: new Date().toISOString()
-          };
+          const response = await fetch(`${this.backendUrl}/register`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ username, email, password }),
+          });
 
-          this.users.push(newUser);
-          this.saveUsers();
+          const data = await response.json();
+
+          if (!response.ok) {
+            // Manejar errores específicos del backend (ej. usuario ya existe)
+            let errorMessage = data.error || 'Error al crear la cuenta.';
+            if (data.details && data.details.length > 0) {
+                errorMessage += ` Detalles: ${data.details.map(d => d.msg).join(', ')}`;
+            }
+            alert(`Error: ${errorMessage}`);
+            return;
+          }
 
           this.showSuccessMessage('¡Cuenta creada exitosamente! Redirigiendo...');
           await this.delay(1500);
           window.location.href = 'login.html?registered=true'; // Redirigir con parámetro
+
         } catch (error) {
           console.error('Error al crear cuenta:', error);
-          alert('Error al crear la cuenta. Por favor, inténtalo de nuevo.');
+          alert('Error de conexión. Por favor, inténtalo de nuevo.');
         } finally {
           this.setLoading(false);
         }
@@ -274,8 +292,8 @@
       }
     }
 
-    // Verificar si ya hay un usuario logueado
-    if (localStorage.getItem('usuarioActual')) {
+    // Verificar si ya hay un token en sessionStorage
+    if (sessionStorage.getItem('authToken')) {
       window.location.href = 'index.html';
     }
 
