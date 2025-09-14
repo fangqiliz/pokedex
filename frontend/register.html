@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pokédex - Crear Cuenta</title>
+  <style>
+    :root {
+      --color-fire: #ef5350; --color-normal: #A8A77A; --color-water: #6390F0; --color-electric: #F7D02C;
+      --color-grass: #7AC74C; --color-ice: #96D9D6; --color-fighting: #C22E28; --color-poison: #A33EA1;
+      --color-ground: #E2BF65; --color-flying: #A98FF3; --color-psychic: #F95587; --color-bug: #A6B91A;
+      --color-rock: #B6A136; --color-ghost: #735797; --color-dragon: #6F35FC; --color-dark: #705746;
+      --color-steel: #B7B7CE; --color-fairy: #D685AD; --color-gold: #FFD700;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+    .auth-container { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 20px; padding: 3rem; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1); width: 100%; max-width: 450px; transform: translateY(20px); animation: slideUp 0.6s ease forwards; opacity: 0; }
+    @keyframes slideUp { to { transform: translateY(0); opacity: 1; } }
+    .logo { text-align: center; margin-bottom: 2rem; }
+    .logo h1 { margin: 0; font-size: 2.5rem; background: linear-gradient(45deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 700; }
+    .logo p { margin: 0.5rem 0 0 0; color: #666; font-size: 1.1rem; }
+    .form-group { margin-bottom: 1.5rem; }
+    .form-group label { display: block; margin-bottom: 0.5rem; color: #333; font-weight: 500; }
+    .form-group input { width: 100%; padding: 1rem; font-size: 1rem; border: 2px solid #e0e0e0; border-radius: 15px; background: white; transition: all 0.3s ease; outline: none; }
+    .form-group input:focus { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); transform: translateY(-2px); }
+    .form-group input.error { border-color: var(--color-fire); box-shadow: 0 0 0 3px rgba(239, 83, 80, 0.1); }
+    .form-group input.success { border-color: var(--color-grass); box-shadow: 0 0 0 3px rgba(122, 199, 76, 0.1); }
+    .error-message { color: var(--color-fire); font-size: 0.9rem; margin-top: 0.5rem; display: none; }
+    .success-message { color: var(--color-grass); font-size: 0.9rem; margin-top: 0.5rem; display: none; }
+    .submit-btn { width: 100%; padding: 1rem 2rem; font-size: 1.1rem; font-weight: 600; border-radius: 15px; border: none; background: linear-gradient(45deg, #667eea, #764ba2); color: white; cursor: pointer; transition: all 0.3s ease; margin-bottom: 1.5rem; }
+    .submit-btn:hover { transform: translateY(-3px); box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3); }
+    .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .auth-links { text-align: center; color: #666; }
+    .auth-links a { color: #667eea; text-decoration: none; font-weight: 500; transition: color 0.3s ease; }
+    .auth-links a:hover { color: #764ba2; }
+    .password-strength { margin-top: 0.5rem; font-size: 0.9rem; }
+    .strength-weak { color: var(--color-fire); }
+    .strength-medium { color: var(--color-ground); }
+    .strength-strong { color: var(--color-grass); }
+    .loading { display: none; text-align: center; margin: 1rem 0; }
+    .loading.show { display: block; }
+    @media (max-width: 480px) { .auth-container { padding: 2rem 1.5rem; margin: 1rem; } .logo h1 { font-size: 2rem; } }
+  </style>
+</head>
+<body>
+  <div class="auth-container">
+    <div class="logo">
+      <h1>Pokédex</h1>
+      <p>Crear nueva cuenta</p>
+    </div>
+    <form id="registerForm">
+      <div class="form-group">
+        <label for="username">Nombre de Usuario</label>
+        <input type="text" id="username" name="username" required>
+        <div class="error-message" id="usernameError"></div>
+      </div>
+      <div class="form-group">
+        <label for="email">Correo Electrónico</label>
+        <input type="email" id="email" name="email" required>
+        <div class="error-message" id="emailError"></div>
+      </div>
+      <div class="form-group">
+        <label for="password">Contraseña</label>
+        <input type="password" id="password" name="password" required>
+        <div class="password-strength" id="passwordStrength"></div>
+        <div class="error-message" id="passwordError"></div>
+      </div>
+      <div class="form-group">
+        <label for="confirmPassword">Confirmar Contraseña</label>
+        <input type="password" id="confirmPassword" name="confirmPassword" required>
+        <div class="error-message" id="confirmPasswordError"></div>
+      </div>
+      <div class="loading" id="loading">
+        ⏳   Creando cuenta...
+      </div>
+      <button type="submit" class="submit-btn" id="submitBtn">
+        Crear Cuenta
+      </button>
+    </form>
+    <div class="auth-links">
+      ¿Ya tienes una cuenta? <a href="login.html">Iniciar Sesión</a>
+    </div>
+  </div>
+  <script>
+    class AuthManager {
+      constructor() {
+        this.backendUrl = 'http://localhost:5000/api/auth'; // URL base del backend
+        this.initEventListeners();
+      }
+
+      initEventListeners() {
+        const form = document.getElementById('registerForm');
+        const username = document.getElementById('username');
+        const email = document.getElementById('email');
+        const password = document.getElementById('password');
+        const confirmPassword = document.getElementById('confirmPassword');
+
+        form.addEventListener('submit', (e) => this.handleSubmit(e));
+        username.addEventListener('input', () => this.validateUsername());
+        email.addEventListener('input', () => this.validateEmail());
+        password.addEventListener('input', () => {
+          this.validatePassword();
+          this.validateConfirmPassword(); // Re-validate confirm password on password change
+        });
+        confirmPassword.addEventListener('input', () => this.validateConfirmPassword());
+      }
+
+      // Helper para obtener todos los usuarios (solo para validación de unicidad en el frontend,
+      // la validación real la hace el backend)
+      async fetchAllUsersForValidation() {
+        // En un entorno real, no se expondría una ruta para obtener todos los usuarios.
+        // Esta función es solo para simular la validación de unicidad en el frontend
+        // antes de enviar al backend, aunque el backend siempre hará la validación final.
+        // Para este ejercicio, asumimos que no hay una ruta pública para esto,
+        // por lo que la validación de unicidad se basará en la respuesta del backend.
+        return [];
+      }
+
+      async validateUsername() {
+        const usernameInput = document.getElementById('username');
+        const errorElement = document.getElementById('usernameError');
+        const value = usernameInput.value.trim();
+
+        if (value.length < 3) {
+          this.showError(usernameInput, errorElement, 'El nombre de usuario debe tener al menos 3 caracteres');
+          return false;
+        }
+        if (value.length > 50) {
+          this.showError(usernameInput, errorElement, 'El nombre de usuario no puede exceder 50 caracteres');
+          return false;
+        }
+        if (!/^[a-zA-Z0-9_-]+$/.test(value)) {
+          this.showError(usernameInput, errorElement, 'El nombre de usuario solo puede contener letras, números, guiones y guiones bajos');
+          return false;
+        }
+        // Unicidad será validada por el backend
+        this.showSuccess(usernameInput, errorElement);
+        return true;
+      }
+
+      async validateEmail() {
+        const emailInput = document.getElementById('email');
+        const errorElement = document.getElementById('emailError');
+        const value = emailInput.value.trim();
+        const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
+
+        if (!emailRegex.test(value)) {
+          this.showError(emailInput, errorElement, 'Por favor, introduce un email válido');
+          return false;
+        }
+        // Unicidad será validada por el backend
+        this.showSuccess(emailInput, errorElement);
+        return true;
+      }
+
+      validatePassword() {
+        const passwordInput = document.getElementById('password');
+        const errorElement = document.getElementById('passwordError');
+        const strengthElement = document.getElementById('passwordStrength');
+        const value = passwordInput.value;
+
+        if (value.length < 6) {
+          this.showError(passwordInput, errorElement, 'La contraseña debe tener al menos 6 caracteres');
+          strengthElement.textContent = '';
+          return false;
+        }
+        if (!/^(?=.*[a-z])(?=.*\d)/.test(value)) {
+          this.showError(passwordInput, errorElement, 'La contraseña debe contener al menos una letra minúscula y un número');
+          strengthElement.textContent = '';
+          return false;
+        }
+
+        let strengthLevel = this.evaluatePasswordStrength(value);
+        strengthElement.className = `password-strength strength-${strengthLevel.level}`;
+        strengthElement.textContent = strengthLevel.text;
+        this.showSuccess(passwordInput, errorElement);
+        return true;
+      }
+
+      evaluatePasswordStrength(password) {
+        let score = 0;
+        if (password.length >= 8) score++;
+        if (/[a-z]/.test(password)) score++;
+        if (/[A-Z]/.test(password)) score++;
+        if (/[0-9]/.test(password)) score++;
+        if (/[^A-Za-z0-9]/.test(password)) score++;
+
+        if (score < 2) return { level: 'weak', text: '   ⚠   Contraseña débil' };
+        if (score < 4) return { level: 'medium', text: '   ⚡   Contraseña moderada' };
+        return { level: 'strong', text: '   🔒   Contraseña fuerte' };
+      }
+
+      validateConfirmPassword() {
+        const passwordInput = document.getElementById('password');
+        const confirmPasswordInput = document.getElementById('confirmPassword');
+        const errorElement = document.getElementById('confirmPasswordError');
+
+        if (confirmPasswordInput.value !== passwordInput.value) {
+          this.showError(confirmPasswordInput, errorElement, 'Las contraseñas no coinciden');
+          return false;
+        }
+        this.showSuccess(confirmPasswordInput, errorElement);
+        return true;
+      }
+
+      showError(input, errorElement, message) {
+        input.classList.remove('success');
+        input.classList.add('error');
+        errorElement.textContent = message;
+        errorElement.style.display = 'block';
+      }
+
+      showSuccess(input, errorElement) {
+        input.classList.remove('error');
+        input.classList.add('success');
+        errorElement.style.display = 'none';
+      }
+
+      async handleSubmit(e) {
+        e.preventDefault();
+
+        const isUsernameValid = await this.validateUsername();
+        const isEmailValid = await this.validateEmail();
+        const isPasswordValid = this.validatePassword();
+        const isConfirmPasswordValid = this.validateConfirmPassword();
+
+        if (!isUsernameValid || !isEmailValid || !isPasswordValid || !isConfirmPasswordValid) {
+          return;
+        }
+
+        this.setLoading(true);
+
+        try {
+          const username = document.getElementById('username').value.trim();
+          const email = document.getElementById('email').value.trim();
+          const password = document.getElementById('password').value;
+
+          const response = await fetch(`${this.backendUrl}/register`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ username, email, password }),
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            // Manejar errores específicos del backend (ej. usuario ya existe)
+            let errorMessage = data.error || 'Error al crear la cuenta.';
+            if (data.details && data.details.length > 0) {
+                errorMessage += ` Detalles: ${data.details.map(d => d.msg).join(', ')}`;
+            }
+            alert(`Error: ${errorMessage}`);
+            return;
+          }
+
+          this.showSuccessMessage('¡Cuenta creada exitosamente! Redirigiendo...');
+          await this.delay(1500);
+          window.location.href = 'login.html?registered=true'; // Redirigir con parámetro
+
+        } catch (error) {
+          console.error('Error al crear cuenta:', error);
+          alert('Error de conexión. Por favor, inténtalo de nuevo.');
+        } finally {
+          this.setLoading(false);
+        }
+      }
+
+      setLoading(loading) {
+        const loadingEl = document.getElementById('loading');
+        const submitBtn = document.getElementById('submitBtn');
+        if (loading) {
+          loadingEl.classList.add('show');
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'Creando...';
+        } else {
+          loadingEl.classList.remove('show');
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Crear Cuenta';
+        }
+      }
+
+      showSuccessMessage(message) {
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.style.background = 'var(--color-grass)';
+        submitBtn.textContent = message;
+      }
+
+      delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+      }
+    }
+
+    // Verificar si ya hay un token en sessionStorage
+    if (sessionStorage.getItem('authToken')) {
+      window.location.href = 'index.html';
+    }
+
+    // Inicializar el sistema de autenticación
+    const authManager = new AuthManager();
+  </script>
+</body>
+</html>

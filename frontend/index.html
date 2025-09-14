@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pokédex</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <nav>
+      <button id="menuPokedex" class="menu-btn active">
+        Pokédex
+      </button>
+      <button id="menuFavoritos" class="menu-btn">
+        Favoritos
+        <span id="favoritesCounter" class="favorites-counter">0</span>
+      </button>
+      <button id="menuComparar" class="menu-btn">Comparar</button>
+      <!-- Información del usuario -->
+      <div class="user-info">
+        <span class="user-welcome">   👋   <span id="userWelcome"></span></span>
+        <button id="logoutBtn" class="logout-btn">Cerrar Sesión</button>
+      </div>
+    </nav>
+  </header>
+  <!-- Modal de login requerido (para toda la app si no hay sesión) -->
+  <div id="loginRequiredModal" class="modal">
+    <div class="modal-content" style="max-width: 400px; text-align: center;">
+      <div style="font-size: 3rem; margin-bottom: 1rem;">   🔒   </div>
+      <h2>Sesión Requerida</h2>
+      <p>Debes iniciar sesión para acceder a tu Pokédex personalizada.</p>
+      <div style="margin-top: 2rem;">
+        <a href="login.html" class="login-required-btn">Iniciar Sesión</a>
+        <a href="register.html" class="login-required-btn register">Crear Cuenta</a>
+      </div>
+    </div>
+  </div>
+  <main>
+    <!-- Sección Pokédex -->
+    <section id="pokedexSection" class="active">
+      <div class="controls">
+        <div class="search-container">
+          <input type="text" id="searchInput" placeholder="Buscar Pokémon por nombre o número">
+          <span class="search-icon">   🔍   </span>
+        </div>
+        <select id="typeFilter">
+          <option value="">Todos los tipos</option>
+          <option value="normal">Normal</option>
+          <option value="fire">Fuego</option>
+          <option value="water">Agua</option>
+          <option value="electric">Eléctrico</option>
+          <option value="grass">Planta</option>
+          <option value="ice">Hielo</option>
+          <option value="fighting">Lucha</option>
+          <option value="poison">Veneno</option>
+          <option value="ground">Tierra</option>
+          <option value="flying">Volador</option>
+          <option value="psychic">Psíquico</option>
+          <option value="bug">Bicho</option>
+          <option value="rock">Roca</option>
+          <option value="ghost">Fantasma</option>
+          <option value="dragon">Dragón</option>
+          <option value="dark">Siniestro</option>
+          <option value="steel">Acero</option>
+          <option value="fairy">Hada</option>
+        </select>
+        <select id="generationFilter">
+          <option value="">Todas las generaciones</option>
+          <option value="1">Generación 1 (Kanto)</option>
+          <option value="2">Generación 2 (Johto)</option>
+          <option value="3">Generación 3 (Hoenn)</option>
+          <option value="4">Generación 4 (Sinnoh)</option>
+          <option value="5">Generación 5 (Unova)</option>
+          <option value="6">Generación 6 (Kalos)</option>
+          <option value="7">Generación 7 (Alola)</option>
+          <option value="8">Generación 8 (Galar)</option>
+          <option value="9">Generación 9 (Paldea)</option>
+        </select>
+      </div>
+      <!-- Historial de búsquedas -->
+      <div id="searchHistoryContainer" class="search-history" style="display: none;">
+        <h3>
+          Búsquedas recientes
+          <button id="clearHistoryBtn" class="clear-history-btn">Limpiar historial</button>
+        </h3>
+        <div id="historyItems" class="history-items"></div>
+      </div>
+      <div id="loader" class="loader hidden">   ⏳   Cargando Pokémon...</div>
+      <div id="pokemonGrid"></div>
+      <div id="paginationControls">
+        <button id="prevPageBtn">Anterior</button>
+        <span id="currentPageDisplay">Página 1</span>
+        <button id="nextPageBtn">Siguiente</button>
+      </div>
+    </section>
+    <!-- Sección Favoritos -->
+    <section id="favoritosSection">
+      <div class="favorites-header">
+        <h2>Pokémon Favoritos</h2>
+        <button id="clearFavoritesBtn" class="clear-favorites-btn" style="display: none;">
+          Limpiar favoritos
+        </button>
+      </div>
+      <div id="favoritesGrid"></div>
+      <div id="emptyFavorites" class="empty-state">
+        <div>   ⭐   </div>
+        <h3>No tienes favoritos aún</h3>
+        <p>Marca algunos Pokémon como favoritos para verlos aquí</p>
+      </div>
+      <!-- Mensaje de login requerido para favoritos -->
+      <div id="loginRequiredFavorites" class="login-required-section" style="display: none;">
+        <div class="login-required-icon">   🔒   </div>
+        <h3>Inicia sesión para ver tus favoritos</h3>
+        <p>Guarda tus Pokémon favoritos y accede a ellos desde cualquier dispositivo</p>
+        <a href="login.html" class="login-required-btn">Iniciar Sesión</a>
+      </div>
+    </section>
+    <!-- Sección Comparar -->
+    <section id="compararSection">
+      <h2 style="text-align:center; margin-bottom: 2rem;">Comparar Pokémon</h2>
+      <div style="display:flex; justify-content:center; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
+        <select id="pokemonCompare1" class="compare-select">
+          <option value="">Seleccionar Pokémon 1</option>
+        </select>
+        <select id="pokemonCompare2" class="compare-select">
+          <option value="">Seleccionar Pokémon 2</option>
+        </select>
+      </div>
+      <div style="text-align:center; margin-bottom: 2rem;">
+        <button id="compareBtn" class="compare-btn">Comparar</button>
+      </div>
+    </section>
+    <!-- Modal detalle Pokémon -->
+    <div id="pokemonModal" class="modal">
+      <div class="modal-content">
+        <span id="closeModal" class="close">&times;</span>
+        <div id="modalBody"></div>
+      </div>
+    </div>
+    <!-- Modal comparación -->
+    <div id="comparisonResult" class="modal">
+      <div class="modal-content" style="max-width: 900px;">
+        <span id="closeCompareModal" class="close">&times;</span>
+        <div id="compareModalBody"></div>
+      </div>
+    </div>
+  </main>
+  <script src="script.js"></script>
+  <script>
+    // Sistema de autenticación y protección
+    class AuthSystem {
+      constructor() {
+        this.currentUser = null;
+        this.backendAuthUrl = 'http://localhost:5000/api/auth';
+        this.backendUserUrl = 'http://localhost:5000/api/user';
+        this.init();
+      }
+
+      async init() {
+        const authToken = sessionStorage.getItem('authToken');
+        if (!authToken) {
+          this.showLoginRequiredModal();
+          return;
+        }
+
+        try {
+          const response = await fetch(`${this.backendAuthUrl}/me`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${authToken}`
+            }
+          });
+
+          if (!response.ok) {
+            // Token inválido o expirado
+            throw new Error('Token inválido o expirado');
+          }
+
+          const data = await response.json();
+          this.currentUser = data.user;
+          sessionStorage.setItem('currentUser', JSON.stringify(this.currentUser)); // Keep currentUser in sessionStorage
+
+          this.setupAuthenticatedSession();
+        } catch (error) {
+          console.error('Error al verificar token o cargar usuario:', error);
+          this.logout(); // Forzar logout si el token es inválido
+        }
+      }
+
+      showLoginRequiredModal() {
+        document.getElementById('loginRequiredModal').classList.add('show');
+        document.body.style.overflow = 'hidden'; // Deshabilitar scroll
+      }
+
+      setupAuthenticatedSession() {
+        document.getElementById('userWelcome').textContent = this.currentUser.username;
+        document.getElementById('logoutBtn').addEventListener('click', () => this.logout());
+        this.loadUserData();
+      }
+
+      loadUserData() {
+        // window.favorites y window.searchHistory ahora se cargarán desde el backend
+        // y se actualizarán a través de las funciones modificadas en script.js
+        window.loadFavorites();
+        window.loadSearchHistory();
+      }
+
+      async logout() {
+        if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
+          const authToken = sessionStorage.getItem('authToken');
+          if (authToken) {
+            try {
+              // Opcional: llamar al endpoint de logout del backend
+              await fetch(`${this.backendAuthUrl}/logout`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${authToken}`
+                }
+              });
+            } catch (error) {
+              console.error('Error al llamar a logout del backend:', error);
+              // Continuar con el logout del frontend aunque falle la llamada al backend
+            }
+          }
+          sessionStorage.removeItem('authToken');
+          sessionStorage.removeItem('currentUser'); // Clear currentUser from sessionStorage
+          window.location.href = 'login.html';
+        }
+      }
+    }
+
+    // Estilos adicionales para el sistema de autenticación (inyectados dinámicamente)
+    const authStyles = `
+      <style>
+        .user-info { display: flex; align-items: center; gap: 1rem; margin-left: auto; }
+        .user-welcome { color: #333; font-weight: 500; padding: 0.5rem 1rem; background: rgba(255, 255, 255, 0.8); border-radius: 20px; font-size: 0.9rem; }
+        .logout-btn { background: var(--color-fire); color: white; border: none; padding: 0.5rem 1rem; border-radius: 15px; cursor: pointer; font-weight: 500; transition: all 0.3s ease; font-size: 0.9rem; }
+        .logout-btn:hover { background: #d32f2f; transform: translateY(-2px); }
+        .login-required-section { text-align: center; padding: 3rem 2rem; background: rgba(102, 126, 234, 0.1); border-radius: 15px; margin: 2rem 0; }
+        .login-required-icon { font-size: 4rem; margin-bottom: 1rem; }
+        .login-required-section h3 { color: #333; margin-bottom: 1rem; }
+        .login-required-section p { color: #666; margin-bottom: 2rem; }
+        .login-required-btn { display: inline-block; padding: 1rem 2rem; background: linear-gradient(45deg, #667eea, #764ba2); color: white; text-decoration: none; border-radius: 25px; font-weight: 500; transition: all 0.3s ease; margin: 0.5rem; }
+        .login-required-btn:hover { transform: translateY(-3px); box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3); }
+        .login-required-btn.register { background: linear-gradient(45deg, var(--color-grass), var(--color-water)); }
+        .login-required-btn.register:hover { box-shadow: 0 10px 25px rgba(122, 199, 76, 0.3); }
+        @media (max-width: 768px) {
+          header nav { flex-wrap: wrap; }
+          .user-info { order: 3; width: 100%; justify-content: center; margin-top: 1rem; margin-left: 0; }
+          .user-welcome { font-size: 0.8rem; padding: 0.4rem 0.8rem; }
+          .logout-btn { font-size: 0.8rem; padding: 0.4rem 0.8rem; }
+        }
+        #loginRequiredModal .modal-content { background: white; border: 3px solid var(--color-water); }
+        #loginRequiredModal h2 { color: #333; margin-bottom: 1rem; }
+        #loginRequiredModal p { color: #666; margin-bottom: 2rem; font-size: 1.1rem; }
+      </style>
+    `;
+    document.head.insertAdjacentHTML('beforeend', authStyles);
+
+    // Inicializar sistema de autenticación
+    const authSystem = new AuthSystem();
+
+    // Modificar la función de mostrar sección para manejar login requerido
+    const originalShowSection = window.showSection;
+    window.showSection = function(section) {
+      if (!authSystem.currentUser) {
+        if (section === 'favoritos') {
+          document.getElementById('loginRequiredFavorites').style.display = 'block';
+          document.getElementById('favoritesGrid').style.display = 'none';
+          document.getElementById('emptyFavorites').style.display = 'none';
+        }
+        return;
+      }
+      if (section === 'favoritos') {
+        document.getElementById('loginRequiredFavorites').style.display = 'none';
+        document.getElementById('favoritesGrid').style.display = 'grid';
+      }
+      originalShowSection(section);
+    };
+  </script>
+</body>
+</html>

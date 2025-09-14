@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pokédex - Iniciar Sesión</title>
+  <style>
+    :root {
+      --color-fire: #ef5350; --color-normal: #A8A77A; --color-water: #6390F0; --color-electric: #F7D02C;
+      --color-grass: #7AC74C; --color-ice: #96D9D6; --color-fighting: #C22E28; --color-poison: #A33EA1;
+      --color-ground: #E2BF65; --color-flying: #A98FF3; --color-psychic: #F95587; --color-bug: #A6B91A;
+      --color-rock: #B6A136; --color-ghost: #735797; --color-dragon: #6F35FC; --color-dark: #705746;
+      --color-steel: #B7B7CE; --color-fairy: #D685AD; --color-gold: #FFD700;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+    .auth-container { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 20px; padding: 3rem; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1); width: 100%; max-width: 450px; transform: translateY(20px); animation: slideUp 0.6s ease forwards; opacity: 0; }
+    @keyframes slideUp { to { transform: translateY(0); opacity: 1; } }
+    .logo { text-align: center; margin-bottom: 2rem; }
+    .logo h1 { margin: 0; font-size: 2.5rem; background: linear-gradient(45deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 700; }
+    .logo p { margin: 0.5rem 0 0 0; color: #666; font-size: 1.1rem; }
+    .welcome-message { background: linear-gradient(45deg, var(--color-water), var(--color-psychic)); color: white; padding: 1rem; border-radius: 10px; text-align: center; margin-bottom: 1.5rem; display: none; }
+    .welcome-message.show { display: block; animation: slideDown 0.5s ease; }
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+    .form-group { margin-bottom: 1.5rem; }
+    .form-group label { display: block; margin-bottom: 0.5rem; color: #333; font-weight: 500; }
+    .form-group input { width: 100%; padding: 1rem; font-size: 1rem; border: 2px solid #e0e0e0; border-radius: 15px; background: white; transition: all 0.3s ease; outline: none; }
+    .form-group input:focus { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); transform: translateY(-2px); }
+    .form-group input.error { border-color: var(--color-fire); box-shadow: 0 0 0 3px rgba(239, 83, 80, 0.1); }
+    .error-message { color: var(--color-fire); font-size: 0.9rem; margin-top: 0.5rem; display: none; background: rgba(239, 83, 80, 0.1); padding: 0.5rem; border-left: 3px solid var(--color-fire); border-radius: 8px; }
+    .error-message.show { display: block; animation: shake 0.5s ease; }
+    @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+    .submit-btn { width: 100%; padding: 1rem 2rem; font-size: 1.1rem; font-weight: 600; border-radius: 15px; border: none; background: linear-gradient(45deg, #667eea, #764ba2); color: white; cursor: pointer; transition: all 0.3s ease; margin-bottom: 1.5rem; }
+    .submit-btn:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3); }
+    .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .auth-links { text-align: center; color: #666; margin-bottom: 1rem; }
+    .auth-links a { color: #667eea; text-decoration: none; font-weight: 500; transition: color 0.3s ease; }
+    .auth-links a:hover { color: #764ba2; }
+    .demo-accounts { background: rgba(102, 126, 234, 0.1); border-radius: 10px; padding: 1rem; margin-top: 1rem; }
+    .demo-accounts h4 { margin: 0 0 0.5rem 0; color: #333; font-size: 0.9rem; }
+    .demo-account { background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 0.5rem; margin-bottom: 0.5rem; cursor: pointer; transition: all 0.3s ease; font-size: 0.8rem; }
+    .demo-account:hover { background: #f5f5f5; transform: translateY(-1px); }
+    .demo-account:last-child { margin-bottom: 0; }
+    .loading { display: none; text-align: center; margin: 1rem 0; }
+    .loading.show { display: block; }
+    .forgot-password { text-align: center; margin-top: 1rem; }
+    .forgot-password a { color: #999; text-decoration: none; font-size: 0.9rem; transition: color 0.3s ease; }
+    .forgot-password a:hover { color: #667eea; }
+    @media (max-width: 480px) { .auth-container { padding: 2rem 1.5rem; margin: 1rem; } .logo h1 { font-size: 2rem; } }
+  </style>
+</head>
+<body>
+  <div class="auth-container">
+    <div class="logo">
+      <h1>Pokédex</h1>
+      <p>Iniciar Sesión</p>
+    </div>
+    <div class="welcome-message" id="welcomeMessage">
+      🎉   ¡Bienvenido de nuevo, Entrenador!
+    </div>
+    <form id="loginForm">
+      <div class="form-group">
+        <label for="email">Correo Electrónico</label>
+        <input type="email" id="email" name="email" required autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label for="password">Contraseña</label>
+        <input type="password" id="password" name="password" required autocomplete="current-password">
+      </div>
+      <div class="error-message" id="errorMessage"></div>
+      <div class="loading" id="loading">
+        ⏳   Verificando credenciales...
+      </div>
+      <button type="submit" class="submit-btn" id="submitBtn">
+        Iniciar Sesión
+      </button>
+    </form>
+    <div class="auth-links">
+      ¿No tienes una cuenta? <a href="register.html">Crear Cuenta</a>
+    </div>
+    <div class="forgot-password">
+      <a href="#" onclick="showForgotPassword()">¿Olvidaste tu contraseña?</a>
+    </div>
+    <div class="demo-accounts">
+      <h4>   🎯   Cuentas de prueba (haz clic para usar):</h4>
+      <!-- <div class="demo-account" onclick="fillDemoAccount('ash@pokedex.com', 'pokemon123')">
+        <strong>Ash Ketchum:</strong> ash@pokedex.com / pokemon123
+      </div> -->
+      <div class="demo-account" onclick="fillDemoAccount('test02@gmail.com', 'Test02#')">
+        <strong>test02:</strong> test02@gmail.com / Test02#
+      </div>
+    </div>
+  </div>
+  <script>
+    // ========== FUNCIONES GLOBALES (DEFINIDAS PRIMERO PARA ONCLICK) ==========
+    function fillDemoAccount(email, password) {
+      document.getElementById('email').value = email;
+      document.getElementById('password').value = password;
+      const inputs = document.querySelectorAll('input');
+      inputs.forEach(input => {
+        input.style.background = 'rgba(102, 126, 234, 0.1)';
+        setTimeout(() => input.style.background = 'white', 1000);
+      });
+    }
+    function showForgotPassword() {
+      alert('   💡   Consejo: Usa una de las cuentas de prueba o crea una nueva cuenta.\n\nEn una aplicación real, aquí enviarías un email de recuperación.');
+    }
+    // ========== CLASE LOGIN MANAGER ==========
+    class LoginManager {
+      constructor() {
+        this.backendUrl = 'http://localhost:5000/api/auth'; // URL base del backend
+        this.initEventListeners();
+        this.checkForWelcomeMessage();
+      }
+
+      checkForWelcomeMessage() {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('registered') === 'true') {
+          const welcomeMessage = document.getElementById('welcomeMessage');
+          welcomeMessage.textContent = '   🎉   ¡Cuenta creada exitosamente! Ahora puedes iniciar sesión.';
+          welcomeMessage.classList.add('show');
+          setTimeout(() => welcomeMessage.classList.remove('show'), 4000);
+        }
+      }
+
+      initEventListeners() {
+        const form = document.getElementById('loginForm');
+        form.addEventListener('submit', (e) => this.handleSubmit(e));
+        document.getElementById('email').addEventListener('input', () => this.clearError());
+        document.getElementById('password').addEventListener('input', () => this.clearError());
+      }
+
+      clearError() {
+        const errorMessage = document.getElementById('errorMessage');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        errorMessage.classList.remove('show');
+        emailInput.classList.remove('error');
+        passwordInput.classList.remove('error');
+      }
+
+      showError(message) {
+        const errorMessage = document.getElementById('errorMessage');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        errorMessage.textContent = message;
+        errorMessage.classList.add('show');
+        emailInput.classList.add('error');
+        passwordInput.classList.add('error');
+      }
+
+      async handleSubmit(e) {
+        e.preventDefault();
+        const email = document.getElementById('email').value.trim().toLowerCase();
+        const password = document.getElementById('password').value;
+
+        if (!email || !password) {
+          this.showError('   ⚠   Por favor, completa todos los campos');
+          return;
+        }
+
+        this.setLoading(true);
+
+        try {
+          const response = await fetch(`${this.backendUrl}/login`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email, password }),
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            this.showError(`   ❌   ${data.error || 'Error al iniciar sesión.'}`);
+            return;
+          }
+
+          // Guardar el token en sessionStorage
+          sessionStorage.setItem('authToken', data.token);
+          // Guardar los datos del usuario en sessionStorage (opcional, pero útil para AuthSystem)
+          sessionStorage.setItem('currentUser', JSON.stringify(data.user));
+
+          this.showSuccess('   ✅   ¡Login exitoso! Redirigiendo...');
+          await this.delay(1000);
+          window.location.href = 'index.html';
+
+        } catch (error) {
+          console.error('Error en login:', error);
+          this.showError('   ❌   Error de conexión. Inténtalo de nuevo más tarde.');
+        } finally {
+          this.setLoading(false);
+        }
+      }
+
+      setLoading(loading) {
+        const loadingEl = document.getElementById('loading');
+        const submitBtn = document.getElementById('submitBtn');
+        if (loading) {
+          loadingEl.classList.add('show');
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'Verificando...';
+        } else {
+          loadingEl.classList.remove('show');
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Iniciar Sesión';
+        }
+      }
+
+      showSuccess(message) {
+        const submitBtn = document.getElementById('submitBtn');
+        const errorMessage = document.getElementById('errorMessage');
+        errorMessage.classList.remove('show');
+        submitBtn.style.background = 'var(--color-grass)';
+        submitBtn.textContent = message;
+      }
+
+      delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+      }
+    }
+
+    // Verificar si ya hay un token en sessionStorage
+    if (sessionStorage.getItem('authToken')) {
+      window.location.href = 'index.html';
+    }
+
+    // Inicializar el sistema de login
+    const loginManager = new LoginManager();
+  </script>
+</body>
+</html>
